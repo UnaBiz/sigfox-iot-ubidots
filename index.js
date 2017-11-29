@@ -57,39 +57,58 @@ function wrap(scloud) {  //  scloud will be either sigfox-gcloud or sigfox-aws, 
   //  and ensure that cloud resources are properly disposed. For AWS, wrap() is called after
   //  all dependencies have been loaded.
   let wrapCount = 0; //  Count how many times the wrapper was reused.
+  let initPromise = null;  //  Promise to init the Ubidots API key.
 
   //  List all require() here because AutoInstall has loaded our dependencies. Don't include sigfox-gcloud or sigfox-aws, they are added by AutoInstall.
   const ubidots = require('./lib/ubidots-node');  //  Ubidots API from github.com/UnaBiz/ubidots-node
 
-  if (!keys) {
-    //  Get the API key from environment or .env.
-    //  To store two or more keys, separate by comma.
-    keys = process.env.UBIDOTS_API_KEY;
-    if (!keys || keys.indexOf('YOUR_') === 0) {  //  Halt if we see YOUR_API_KEY.
-      throw new Error('Environment variable UBIDOTS_API_KEY not defined');
-    }
-    allKeys = keys.split(',');  //  Array of Ubidots API keys.
+  function init(req) {
+    //  Init the Ubidots API key and lat/lng fields from environment or Google Metadata Store.
+    //  Returns a promise.
+    if (initPromise) return initPromise;
+    //  Get the function metadata from environment or Google Metadata Store.
+    initPromise = scloud.authorizeFunctionMetadata(req)
+      .then(authClient => scloud.getFunctionMetadata(req, authClient))
+      .then((metadata) => {
+        //  Get the API key from environment or Google Metadata Store.
+        //  To store two or more keys, separate by comma.
+        keys = metadata.UBIDOTS_API_KEY;
+        if (!keys || keys.indexOf('YOUR_') === 0) {  //  Halt if we see YOUR_API_KEY.
+          throw new Error('UBIDOTS_API_KEY should be defined in environment or Google Cloud Metadata Store');
+        }
+        allKeys = keys.split(',');  //  Array of Ubidots API keys.
 
-    //  Read the list of lat/lng fields to be renamed.
-    configLat = process.env.LAT_FIELDS;
-    configLng = process.env.LNG_FIELDS;
-    if (configLat && configLng
-      && typeof configLat === 'string'
-      && typeof configLng === 'string'
-      && configLat.trim().length > 0
-      && configLng.trim().length > 0
-    ) {
-      latFields = configLat.trim().split(',').map(s => s.trim());
-      lngFields = configLng.trim().split(',').map(s => s.trim());
-    }
+        //  Read the list of lat/lng fields to be renamed.
+        configLat = metadata.LAT_FIELDS;
+        configLng = metadata.LNG_FIELDS;
+        if (configLat && configLng
+          && typeof configLat === 'string'
+          && typeof configLng === 'string'
+          && configLat.trim().length > 0
+          && configLng.trim().length > 0
+        ) {
+          latFields = configLat.trim().split(',').map(s => s.trim());
+          lngFields = configLng.trim().split(',').map(s => s.trim());
+        }
 
-    //  Cache of devices by Ubidots client.  Each Ubidots client will have one object in this array.
-    clientCache = allKeys.map(apiKey => ({
-      apiKey,     //  API Key for the Ubidots client.
-      expiry: 0,  //  Expiry timestamp for this cache.  Randomised to prevent 2 clients from refreshing at the same time.
-      devicesPromise: Promise.resolve({}),  //  Promise for the map of cached devices.
-    }));
+        //  Cache of devices by Ubidots client.  Each Ubidots client will have one object in this array.
+        clientCache = allKeys.map(apiKey => ({
+          apiKey,     //  API Key for the Ubidots client.
+          expiry: 0,  //  Expiry timestamp for this cache.  Randomised to prevent 2 clients from refreshing at the same time.
+          devicesPromise: Promise.resolve({}),  //  Promise for the map of cached devices.
+        }));
+        return 'OK';
+      })
+      .catch((error) => {
+        initPromise = null;  //  Retry upon error.
+        scloud.log(req, 'init', { error });
+        throw error;
+      });
+    return initPromise;
   }
+
+  //  Init the API keys at startup.
+  if (!keys) init({});
 
   function promisfy(func) {
     //  Convert the callback-style function in func and return as a promise.
@@ -376,13 +395,15 @@ function wrap(scloud) {  //  scloud will be either sigfox-gcloud or sigfox-aws, 
     if (body0.duplicate === true || body0.duplicate === 'true') {
       return Promise.resolve(msg);
     }
-    //  Transform the lat/lng in the message.
     Object.assign(req, { device });
-    const body = transformBody(req, body0);
-
-    //  Load the Ubidots datasources if not already loaded.
+    let body = null;
     let allDevices0 = null;
-    return loadAllDevices(req, allKeys)
+    //  Init the Ubidots API key and lat/lng fields.
+    return init(req)
+      //  Transform the lat/lng in the message.
+      .then(() => { body = transformBody(req, body0); })
+      //  Load the Ubidots datasources if not already loaded.
+      .then(() => loadAllDevices(req, allKeys))
       .then((res) => { allDevices0 = res; })
       //  Load the Ubidots variables for the device if not loaded already.
       .then(() => getVariablesByDevice(req, allDevices0, device))
