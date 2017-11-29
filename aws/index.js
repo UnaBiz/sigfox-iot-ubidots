@@ -2,10 +2,11 @@
 //  Copy and paste the entire contents of this file into a Lambda Function
 //  Name: sendToUbidots
 //  Runtime: Node.js 6.10
+//  Handler: index.main
 //  Memory: 512 MB
 //  Timeout: 5 min
 //  Existing Role: lambda_iot Role, which has the LambdaExecuteIoTUpdate Policy
-//    (defined in ../policy/LambdaExecuteIoTUpdate.json)
+//    (defined in https://github.com/UnaBiz/sigfox-aws/blob/master/policy/LambdaExecuteIoTUpdate.json)
 //  Debugging: Enable active tracing
 //  Environment Variables:
 //    NODE_ENV=production
