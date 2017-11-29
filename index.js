@@ -1,29 +1,5 @@
 //  region Introduction
-//  sendToUbidots Installation Instructions:
-//  Copy and paste the entire contents of lib/lambda.js into a Lambda Function
-//  Name: sendToUbidots
-//  Runtime: Node.js 6.10
-//  Memory: 512 MB
-//  Timeout: 5 min
-//  Existing Role: lambda_iot (defined according to ../policy/LambdaExecuteIoTUpdate.json)
-//  Debugging: Enable active tracing
-//  Environment Variables:
-//  NODE_ENV=production
-//  AUTOINSTALL_DEPENDENCY= sigfox-aws-ubidots
-//  AUTOINSTALL_VERSION= >=0.0.6
-//  UBIDOTS_API_KEY=Your Ubidots API key
-//  LAT_FIELDS=deviceLat,geolocLat
-//  LNG_FIELDS=deviceLng,geolocLng
-
-//  Go to AWS IoT, create a Rule:
-//  Name: sigfoxSendToUbidots
-//  SQL Version: Beta
-//  Attribute: *
-//  Topic filter: sigfox/types/sendToUbidots
-//  Condition: (Blank)
-//  Action: Run Lambda Function sendToUbidots
-
-//  Lambda Function sendToUbidots is triggered when a
+//  Cloud Function sendToUbidots is triggered when a
 //  Sigfox message is sent to the message queue sigfox.devices.all.
 //  We call the Ubidots API to send the Sigfox message to Ubidots.
 
