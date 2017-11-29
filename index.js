@@ -32,9 +32,9 @@
 //  region AutoInstall: List all dependencies here, or just paste the contents of package.json. AutoInstall will install these dependencies before calling wrap().
 const package_json = /* eslint-disable quote-props,quotes,comma-dangle,indent */
 //  PASTE PACKAGE.JSON BELOW  //////////////////////////////////////////////////////////
-    {
-      "uuid": "^3.1.0"
-    }
+{
+  "request": "^2.34.0"
+}
 //  PASTE PACKAGE.JSON ABOVE  //////////////////////////////////////////////////////////
 ; /* eslint-enable quote-props,quotes,comma-dangle,indent */
 
@@ -402,19 +402,10 @@ function wrap(scloud) {  //  scloud will be either sigfox-gcloud or sigfox-aws, 
     //  variables, and populate the values.  All datasources, variables
     //  must be created in advance.  If the device ID exists in multiple
     //  Ubidots accounts, all Ubidots accounts will be updated.
-    wrapCount += 1; console.log({ wrapCount }); //
+    wrapCount += 1; console.log({ wrapCount }); //  Count how many times the wrapper was reused.
     //  Skip duplicate messages.
     if (body0.duplicate === true || body0.duplicate === 'true') {
       return Promise.resolve(msg);
-    }
-    if (body0.baseStationTime) {
-      const baseStationTime = parseInt(body0.baseStationTime, 10);
-      const age = Date.now() - (baseStationTime * 1000);
-      console.log({ baseStationTime });
-      if (age > 5 * 60 * 1000) {
-        //  If older than 5 mins, reject.
-        throw new Error(`too_old: ${age}`);
-      }
     }
     //  Transform the lat/lng in the message.
     Object.assign(req, { device });
@@ -461,51 +452,26 @@ function wrap(scloud) {  //  scloud will be either sigfox-gcloud or sigfox-aws, 
       .then(() => msg)
       .catch((error) => { scloud.error(req, 'task', { error, device, body, msg }); throw error; });
   }
+
+  //  Expose these functions outside of the wrapper.  task() is called to execute
+  //  the wrapped function when the dependencies and wrapper have been loaded.
+  return { task };
 }
 
-function wrap() {
-  //  Wrap the module into a function so that all Cloud resources are properly disposed.
-  const scloud = require('sigfox-aws'); //  sigfox-aws Framework
-  let wrapCount = 0;
-
-
-  return {
-    //  Expose these functions outside of the wrapper.
-    //  When this Google Cloud Function is triggered, we call main() which calls task().
-    serveQueue: event => scloud.main(event, task),
-
-    //  For unit test only.
-    task,
-    loadDevicesByClient,
-    getVariablesByDevice,
-    setVariables,
-    mergeDevices,
-  };
-}
-
-//  End Message Processing Code
-//  //////////////////////////////////////////////////////////////////////////////////////////
-
-//  //////////////////////////////////////////////////////////////////////////////////////////
-//  Main Function
-
-const wrapper = wrap();
-
-module.exports = {
-  //  Expose these functions to be called by Google Cloud Function.
-
-  main: (event) => {
-    //  Create a wrapper and serve the PubSub event.
-    return wrapper.serveQueue(event)
-      //  Suppress the error or Google Cloud will call the function again.
-      .catch(error => error);
-  },
-
-  //  For unit test only.
-  task: wrap().task,
-  loadDevicesByClient: wrap().loadDevicesByClient,
-  getVariablesByDevice: wrap().getVariablesByDevice,
-  setVariables: wrap().setVariables,
-  mergeDevices: wrap().mergeDevices,
-  allKeys,
-};
+//  //////////////////////////////////////////////////////////////////////////////////// endregion
+//  region Standard Code for AutoInstall Startup Function 1.0.  Do not modify.  https://github.com/UnaBiz/sigfox-iot-cloud/blob/master/autoinstall.js
+/* eslint-disable camelcase,no-unused-vars,import/no-absolute-path,import/no-unresolved,no-use-before-define,global-require,max-len,no-tabs,brace-style,import/no-extraneous-dependencies */
+const wrapper = {};  //  The single reused wrapper instance (initially empty) for invoking the module functions.
+exports.main = process.env.FUNCTION_NAME ? require('sigfox-gcloud/main').getMainFunction(wrapper, wrap, package_json)  //  Google Cloud.
+  : (event, context, callback) => { //  exports.main is the startup function for AWS Lambda and Google Cloud Function.
+    //  When AWS starts our Lambda function, we load the autoinstall script from GitHub to install any NPM dependencies.
+    //  For first run, install the dependencies specified in package_json and proceed to next step.
+    //  For future runs, just execute the wrapper function with the event, context, callback parameters.
+    const afterExec = error => error ? callback(error, 'AutoInstall Failed')
+      : require('/tmp/autoinstall').installAndRunWrapper(event, context, callback,
+        package_json, __filename, wrapper, wrap);
+    if (require('fs').existsSync('/tmp/autoinstall.js')) return afterExec(null);  //  Already downloaded.
+    const cmd = 'curl -s -S -o /tmp/autoinstall.js https://raw.githubusercontent.com/UnaBiz/sigfox-iot-cloud/master/autoinstall.js';
+    const child = require('child_process').exec(cmd, { maxBuffer: 1024 * 500 }, afterExec);
+    child.stdout.on('data', console.log); child.stderr.on('data', console.error); return null; };
+//  //////////////////////////////////////////////////////////////////////////////////// endregion
