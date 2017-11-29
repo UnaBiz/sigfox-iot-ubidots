@@ -1,3 +1,4 @@
+//  region Introduction
 //  sendToUbidots Installation Instructions:
 //  Copy and paste the entire contents of lib/lambda.js into a Lambda Function
 //  Name: sendToUbidots
@@ -26,50 +27,41 @@
 //  Sigfox message is sent to the message queue sigfox.devices.all.
 //  We call the Ubidots API to send the Sigfox message to Ubidots.
 
-//  //////////////////////////////////////////////////////////////////////////////////////////
-//  Begin Common Declarations
-
-/* eslint-disable arrow-body-style, max-len, global-require */
-process.on('uncaughtException', err => console.error('uncaughtException', err.message, err.stack));  //  Display uncaught exceptions.
-process.on('unhandledRejection', (reason, p) => console.error('Unhandled Rejection at:', p, 'reason:', reason));
+/* eslint-disable max-len, camelcase, no-console, no-nested-ternary, import/no-dynamic-require, import/newline-after-import, import/no-unresolved, global-require, max-len */
+//  //////////////////////////////////////////////////////////////////////////////////// endregion
+//  region AutoInstall: List all dependencies here, or just paste the contents of package.json. AutoInstall will install these dependencies before calling wrap().
+const package_json = /* eslint-disable quote-props,quotes,comma-dangle,indent */
+//  PASTE PACKAGE.JSON BELOW  //////////////////////////////////////////////////////////
+    {
+      "uuid": "^3.1.0"
+    }
+//  PASTE PACKAGE.JSON ABOVE  //////////////////////////////////////////////////////////
+; /* eslint-enable quote-props,quotes,comma-dangle,indent */
 
 //  //////////////////////////////////////////////////////////////////////////////////// endregion
-//  region AWS-Specific Functions
+//  region Common Declarations: Helper constants to detect if we are running on Google Cloud or AWS.
+//  Don't use any require() or process.env in this section because AutoInstall has not loaded our dependencies yet.
+const isGoogleCloud = !!process.env.FUNCTION_NAME || !!process.env.GAE_SERVICE; // eslint-disable-next-line no-unused-vars
+const isAWS = !!process.env.AWS_LAMBDA_FUNCTION_NAME; // eslint-disable-next-line no-unused-vars
+const isProduction = (process.env.NODE_ENV === 'production');  //  True on production server.
 
 //  //////////////////////////////////////////////////////////////////////////////////// endregion
-//  region Portable Declarations for Google Cloud and AWS
-
-// eslint-disable-next-line import/no-unresolved
-const ubidots = require('./lib/ubidots-node');  //  Ubidots API from github.com/UnaBiz/ubidots-node
-
-//  //////////////////////////////////////////////////////////////////////////////////// endregion
-//  region Portable Code for Google Cloud and AWS
+//  region Custom Declarations: Don't use any require() or process.env in this section because AutoInstall has not loaded our dependencies yet.
 
 //  Assume all Sigfox device IDs are 6 letters/digits long.
 const DEVICE_ID_LENGTH = 6;
 
-//  Get the API key from environment or config.json.
-//  To store two or more keys, separate by comma.
-const keys = process.env.UBIDOTS_API_KEY;
-if (!keys || keys.indexOf('YOUR_') === 0) {  //  Halt if we see YOUR_API_KEY.
-  throw new Error('Environment variable UBIDOTS_API_KEY not defined');
-}
-const allKeys = keys.split(',');  //  Array of Ubidots API keys.
+//  Devices expire in 30 seconds, so they will be auto refreshed from Ubidots.
+const expiry = 30 * 1000;
 
-//  Read the list of lat/lng fields to be renamed.
-const configLat = process.env.LAT_FIELDS;
-const configLng = process.env.LNG_FIELDS;
+let keys = null;  //  Will store the Ubidots API keys.
+let allKeys = null;  //  Will store the array of Ubidots API keys.
+
+//  List of lat/lng fields to be renamed.
+let configLat = null;
+let configLng = null;
 let latFields = null;
 let lngFields = null;
-if (configLat && configLng
-  && typeof configLat === 'string'
-  && typeof configLng === 'string'
-  && configLat.trim().length > 0
-  && configLng.trim().length > 0
-) {
-  latFields = configLat.trim().split(',').map(s => s.trim());
-  lngFields = configLng.trim().split(',').map(s => s.trim());
-}
 
 //  Map Sigfox device ID to an array of Ubidots datasource and variables:
 //  allDevices = '2C30EB' => [{
@@ -86,18 +78,49 @@ if (configLat && configLng
 let allDevicesPromise = null;
 
 //  Cache of devices by Ubidots client.  Each Ubidots client will have one object in this array.
-const clientCache = allKeys.map(apiKey => ({
-  apiKey,     //  API Key for the Ubidots client.
-  expiry: 0,  //  Expiry timestamp for this cache.  Randomised to prevent 2 clients from refreshing at the same time.
-  devicesPromise: Promise.resolve({}),  //  Promise for the map of cached devices.
-}));
+let clientCache = null;
 
-const expiry = 30 * 1000;  //  Devices expire in 30 seconds, so they will be auto refreshed from Ubidots.
+//  //////////////////////////////////////////////////////////////////////////////////// endregion
+//  region Message Processing Code
 
-function wrap() {
-  //  Wrap the module into a function so that all Cloud resources are properly disposed.
-  const scloud = require('sigfox-aws'); //  sigfox-aws Framework
-  let wrapCount = 0;
+function wrap(scloud) {  //  scloud will be either sigfox-gcloud or sigfox-aws, depending on platform.
+  //  Wrap the module into a function so that all we defer loading of dependencies,
+  //  and ensure that cloud resources are properly disposed. For AWS, wrap() is called after
+  //  all dependencies have been loaded.
+  let wrapCount = 0; //  Count how many times the wrapper was reused.
+
+  //  List all require() here because AutoInstall has loaded our dependencies. Don't include sigfox-gcloud or sigfox-aws, they are added by AutoInstall.
+  const ubidots = require('./lib/ubidots-node');  //  Ubidots API from github.com/UnaBiz/ubidots-node
+
+  if (!keys) {
+    //  Get the API key from environment or .env.
+    //  To store two or more keys, separate by comma.
+    keys = process.env.UBIDOTS_API_KEY;
+    if (!keys || keys.indexOf('YOUR_') === 0) {  //  Halt if we see YOUR_API_KEY.
+      throw new Error('Environment variable UBIDOTS_API_KEY not defined');
+    }
+    allKeys = keys.split(',');  //  Array of Ubidots API keys.
+
+    //  Read the list of lat/lng fields to be renamed.
+    configLat = process.env.LAT_FIELDS;
+    configLng = process.env.LNG_FIELDS;
+    if (configLat && configLng
+      && typeof configLat === 'string'
+      && typeof configLng === 'string'
+      && configLat.trim().length > 0
+      && configLng.trim().length > 0
+    ) {
+      latFields = configLat.trim().split(',').map(s => s.trim());
+      lngFields = configLng.trim().split(',').map(s => s.trim());
+    }
+
+    //  Cache of devices by Ubidots client.  Each Ubidots client will have one object in this array.
+    clientCache = allKeys.map(apiKey => ({
+      apiKey,     //  API Key for the Ubidots client.
+      expiry: 0,  //  Expiry timestamp for this cache.  Randomised to prevent 2 clients from refreshing at the same time.
+      devicesPromise: Promise.resolve({}),  //  Promise for the map of cached devices.
+    }));
+  }
 
   function promisfy(func) {
     //  Convert the callback-style function in func and return as a promise.
@@ -252,7 +275,7 @@ function wrap() {
 
     //  Must bind so that "this" is correct.
     return promisfy(client.auth.bind(client))
-      //  Get the list of datasources from Ubidots.
+    //  Get the list of datasources from Ubidots.
       .then(() => promisfy(client.getDatasources.bind(client)))
       .then((res) => {
         if (!res) throw new Error('no_datasources');
@@ -330,7 +353,7 @@ function wrap() {
     }
     //  Load the devices for each Ubidots client.
     allDevicesPromise = promise
-      //  Consolidate the array of devices by client and cache it.
+    //  Consolidate the array of devices by client and cache it.
       .then(() => mergeDevices(req, allDevices))
       .catch((error) => {
         //  In case of error, don't cache.
@@ -438,6 +461,13 @@ function wrap() {
       .then(() => msg)
       .catch((error) => { scloud.error(req, 'task', { error, device, body, msg }); throw error; });
   }
+}
+
+function wrap() {
+  //  Wrap the module into a function so that all Cloud resources are properly disposed.
+  const scloud = require('sigfox-aws'); //  sigfox-aws Framework
+  let wrapCount = 0;
+
 
   return {
     //  Expose these functions outside of the wrapper.
