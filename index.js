@@ -39,14 +39,7 @@ const package_json = /* eslint-disable quote-props,quotes,comma-dangle,indent */
 ; /* eslint-enable quote-props,quotes,comma-dangle,indent */
 
 //  //////////////////////////////////////////////////////////////////////////////////// endregion
-//  region Common Declarations: Helper constants to detect if we are running on Google Cloud or AWS.
-//  Don't use any require() or process.env in this section because AutoInstall has not loaded our dependencies yet.
-const isGoogleCloud = !!process.env.FUNCTION_NAME || !!process.env.GAE_SERVICE; // eslint-disable-next-line no-unused-vars
-const isAWS = !!process.env.AWS_LAMBDA_FUNCTION_NAME; // eslint-disable-next-line no-unused-vars
-const isProduction = (process.env.NODE_ENV === 'production');  //  True on production server.
-
-//  //////////////////////////////////////////////////////////////////////////////////// endregion
-//  region Custom Declarations: Don't use any require() or process.env in this section because AutoInstall has not loaded our dependencies yet.
+//  region Declarations: Don't use any require() or process.env in this section because AutoInstall has not loaded our dependencies yet.
 
 //  Assume all Sigfox device IDs are 6 letters/digits long.
 const DEVICE_ID_LENGTH = 6;
@@ -454,7 +447,7 @@ function wrap(scloud) {  //  scloud will be either sigfox-gcloud or sigfox-aws, 
   }
 
   //  Expose these functions outside of the wrapper.  task() is called to execute
-  //  the wrapped function when the dependencies and wrapper have been loaded.
+  //  the wrapped function when the dependencies and the wrapper have been loaded.
   return { task };
 }
 
@@ -465,8 +458,7 @@ const wrapper = {};  //  The single reused wrapper instance (initially empty) fo
 exports.main = process.env.FUNCTION_NAME ? require('sigfox-gcloud/main').getMainFunction(wrapper, wrap, package_json)  //  Google Cloud.
   : (event, context, callback) => {
     const afterExec = error => error ? callback(error, 'AutoInstall Failed')
-      : require('/tmp/autoinstall').installAndRunWrapper(event, context, callback,
-        package_json, __filename, wrapper, wrap);
+      : require('/tmp/autoinstall').installAndRunWrapper(event, context, callback, package_json, __filename, wrapper, wrap);
     if (require('fs').existsSync('/tmp/autoinstall.js')) return afterExec(null);  //  Already downloaded.
     const cmd = 'curl -s -S -o /tmp/autoinstall.js https://raw.githubusercontent.com/UnaBiz/sigfox-iot-cloud/master/autoinstall.js';
     const child = require('child_process').exec(cmd, { maxBuffer: 1024 * 500 }, afterExec);
