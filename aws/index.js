@@ -21,7 +21,7 @@
 //  Attribute: *
 //  Topic filter: sigfox/types/sendToUbidots
 //  Condition: (Blank)
-//  Action: Run Lambda Function sendToUbidots
+//  Action: Invoke Lambda Function sendToUbidots
 
 //  Refer to this URL for source code and comments:
 //  https://github.com/UnaBiz/sigfox-iot-ubidots/blob/master/index.js
