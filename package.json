@@ -1,0 +1,49 @@
+{
+  "name": "sigfox-iot-ubidots",
+  "version": "1.0.0",
+  "description": "sigfox-gcloud and sigfox-aws adapter for integrating Sigfox devices with Ubidots",
+  "main": "index.js",
+  "scripts": {
+    "deploy": "echo TODO",
+    "test": "node test"
+  },
+  "keywords": [
+    "sigfox",
+    "ubidots",
+    "google",
+    "cloud",
+    "functions",
+    "aws",
+    "lambda",
+    "functions",
+    "iot"
+  ],
+  "author": {
+    "name": "Lee Lup Yuen",
+    "email": "ly.lee@unabiz.com",
+    "url": "http://github.com/unabiz/"
+  },
+  "license": "MIT",
+  "engines": {
+    "node": ">=7.8.0"
+  },
+  "dependencies": {
+    "request": "^2.34.0",
+    "sigfox-iot-cloud": "1.0.8"
+  },
+  "devDependencies": {
+    "chai": "^3.5.0",
+    "chai-as-promised": "^6.0.0",
+    "should": "^11.2.1",
+    "supertest-as-promised": "^4.0.2",
+    "supertest": "^3.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/UnaBiz/sigfox-iot-ubidots.git"
+  },
+  "bugs": {
+    "url": "https://github.com/UnaBiz/sigfox-iot-ubidots/issues"
+  },
+  "homepage": "https://github.com/UnaBiz/sigfox-iot-ubidots#readme"
+}
