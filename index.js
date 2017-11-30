@@ -408,16 +408,16 @@ function wrap(scloud) {  //  scloud will be either sigfox-gcloud or sigfox-aws, 
         if (containsLocation(req, body)) {
           //  If body contains location, copy all the past sensor values over.
           const newBody = Object.assign({}, state);
-          locationFields.forEach((key) => {
-            if (body[key]) newBody[key] = body[key];
+          locationFields.forEach((key) => { //  Exclude metadata
+            if (body[key] && key !== 'metadata') newBody[key] = body[key];
           });
           scloud.log(req, 'copyLoc', { status: 'copy_past_sensor', prev: state, now: body, result: newBody });
           return newBody;
         } else if (!containsLocation(req, body)) {
           //  If body does not contain location, copy all past location values over.
           const newBody = Object.assign({}, body);
-          locationFields.forEach((key) => {
-            if (state[key]) newBody[key] = state[key];
+          locationFields.forEach((key) => {  //  Exclude metadata
+            if (state[key] && key !== 'metadata') newBody[key] = state[key];
           });
           scloud.log(req, 'copyLoc', { status: 'copy_past_loc', now: body, prev: state, result: newBody });
           return newBody;
