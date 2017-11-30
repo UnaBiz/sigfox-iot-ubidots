@@ -386,8 +386,8 @@ function wrap(scloud) {  //  scloud will be either sigfox-gcloud or sigfox-aws, 
   }
 
   function containsLocation(req, body) {
-    //  Return true if body contains location data i.e. lat, lng.
-    if (body.lat && body.lng) return true;
+    //  Return true if body contains location data i.e. deviceLat, deviceLng.
+    if (body.deviceLat && body.deviceLng) return true;
     return false;
   }
 
@@ -444,15 +444,15 @@ function wrap(scloud) {  //  scloud will be either sigfox-gcloud or sigfox-aws, 
       return Promise.resolve(msg);
     }
     Object.assign(req, { device });
-    let body = null;
+    let body = body0;
     let allDevices0 = null;
     //  Init the Ubidots API key and lat/lng fields.
     return init(req)
-      //  Transform the lat/lng in the message.
-      .then(() => { body = transformBody(req, body0); })
       //  If body contains location data, copy the previous sensor data. And vice versa.
       .then(() => copyLocationSensorFields(req, device, body))
       .then((res) => { body = res; })
+      //  Transform the lat/lng in the message: deviceLat=>lat, deviceLng=>lng
+      .then(() => { body = transformBody(req, body); })
       //  Load the Ubidots datasources if not already loaded.
       .then(() => loadAllDevices(req, allKeys))
       .then((res) => { allDevices0 = res; })
