@@ -23,6 +23,9 @@ const DEVICE_ID_LENGTH = 6;
 //  Devices expire in 30 seconds, so they will be auto refreshed from Ubidots.
 const expiry = 30 * 1000;
 
+//  Location fields to be copied from previous device state into sensor records.
+const locationFields = ['lat', 'lng', 'deviceLat', 'deviceLng'];
+
 let keys = null;  //  Will store the Ubidots API keys.
 let allKeys = null;  //  Will store the array of Ubidots API keys.
 
@@ -382,6 +385,51 @@ function wrap(scloud) {  //  scloud will be either sigfox-gcloud or sigfox-aws, 
     return body;
   }
 
+  function containsLocation(req, body) {
+    //  Return true if body contains location data i.e. lat, lng.
+    if (body.lat && body.lng) return true;
+    return false;
+  }
+
+  function copyLocationSensorFields(req, device, body) {
+    //  If body contains location data, copy the previous sensor data. And vice versa.
+    //  This is needed because UnaLocation sends lat/lng records separately from sensor records.
+    //  Return a promise for the new body.
+
+    //  Get the previous state.
+    return (scloud.getDeviceState(req, device)
+      //  In case the device state doesn't exist, return empty state and proceed.
+      .catch(() => {}))
+      //  res contains {"reported":{"tmp":1,"hmd":2,...
+      .then((res) => {
+        //  state contains {"tmp":1,"hmd":2,...
+        const state = (res && res.reported) ? res.reported : {};
+        if (Object.keys(state).length === 0) return body;  //  No previous state.
+        if (containsLocation(req, body)) {
+          //  If body contains location, copy all the past sensor values over.
+          const newBody = Object.assign({}, state);
+          locationFields.forEach((key) => {
+            if (body[key]) newBody[key] = body[key];
+          });
+          scloud.log(req, 'copyLoc', { status: 'copy_past_sensor', prev: state, now: body, result: newBody });
+          return newBody;
+        } else if (!containsLocation(req, body)) {
+          //  If body does not contain location, copy all past location values over.
+          const newBody = Object.assign({}, body);
+          locationFields.forEach((key) => {
+            if (state[key]) newBody[key] = state[key];
+          });
+          scloud.log(req, 'copyLoc', { status: 'copy_past_loc', now: body, prev: state, result: newBody });
+          return newBody;
+        }
+        return body;
+      })
+      .catch((error) => {  //  Ignore errors.
+        scloud.dumpError(error);
+        return body;
+      });
+  }
+
   function task(req, device, body0, msg) {
     //  The task for this Google Cloud Function: Record the body of the
     //  Sigfox message in Ubidots by calling the Ubidots API.
@@ -402,6 +450,9 @@ function wrap(scloud) {  //  scloud will be either sigfox-gcloud or sigfox-aws, 
     return init(req)
       //  Transform the lat/lng in the message.
       .then(() => { body = transformBody(req, body0); })
+      //  If body contains location data, copy the previous sensor data. And vice versa.
+      .then(() => copyLocationSensorFields(req, device, body))
+      .then((res) => { body = res; })
       //  Load the Ubidots datasources if not already loaded.
       .then(() => loadAllDevices(req, allKeys))
       .then((res) => { allDevices0 = res; })
