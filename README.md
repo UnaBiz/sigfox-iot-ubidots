@@ -125,8 +125,10 @@ whenever the temperature value is transmitted to Ubidots.
 The `sendToUbidots` Lambda Function can be configured to send any latitude-longitude fields
 as `lat` and `lng`.  Set the environment variables for the `sendToUbidots` Lambda Function as follows:
 
+```
 LAT_FIELDS=deviceLat
 LNG_FIELDS=deviceLng
+```
 
 This configures `sendToUbidots` to look for any data fields named
 `deviceLat` and `deviceLng`, and if found, duplicate the fields as `lat` and `lng`
@@ -137,8 +139,10 @@ they will be rendered correctly in a Ubidots map, like below.
 
 Multiple latitude-longitude field names may be specified like this:
 
+```
 LAT_FIELDS=deviceLat,geolocLat
 LNG_FIELDS=deviceLng,geolocLng
+```
 
 In the example above, `sendToUbidots` searches for the fields `deviceLat` and `deviceLng` first.
 If the fields are not found, then it searches for `geolocLat` and `geolocLng`.
