@@ -3,7 +3,7 @@
 //  //////////////////////////////////////////////////////////////////////////////////// endregion
 //  region Declarations: Don't use any require() or process.env in this section because AutoInstall has not loaded our dependencies yet.
 
-import dgram from 'dgram';
+import { createSocket } from 'dgram';
 
 //  //////////////////////////////////////////////////////////////////////////////////// endregion
 //  region Message Processing Code
@@ -39,11 +39,11 @@ export function wrap(scloud, api) {  //  scloud will be either sigfox-gcloud or 
     const s = [
       'sigfox-iot-ubidots',
       'POST',
-      'A1E-ZvX3cD..ke6Idw',
-      '2c30eb=>sw1:4$lat=1.31$lng=103.86,sw2:5',
+      process.env.UBIDOTS_TOKEN,
+      'sigfox-device-2c30eb=>sw1:4$lat=1.31$lng=103.86,sw2:5',
       'end'].join('|');
     const message = Buffer.from(s);
-    const client = dgram.createSocket('udp4');
+    const client = createSocket('udp4');
     client.send(message, 9012, 'translate.ubidots.com', (err) => {
       client.close();
     });
