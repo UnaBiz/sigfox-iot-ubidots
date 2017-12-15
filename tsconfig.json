@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "target": "ES2016",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "alwaysStrict": true,
+    "sourceMap": true,
+    "jsx": "react",
+    "allowJs": false,
+    "noImplicitAny": false,
+    "strictNullChecks": false
+  },
+  "include": [
+    "lib/*",
+    "*"
+  ],
+  "exclude": [
+    "node_modules",
+    "lib/ubidots-node"
+  ]
+}
