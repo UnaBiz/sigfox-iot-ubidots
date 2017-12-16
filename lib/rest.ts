@@ -29,7 +29,7 @@ let allDevicesPromise = null;
 let clientCache = null;
 
 // const ubidots = require('./ubidots-node'); //  Ubidots API from github.com/UnaBiz/ubidots-node
-import ubidots from './ubidots-node'; //  Ubidots API from github.com/UnaBiz/ubidots-node
+const ubidots = require('./ubidots-node'); //  Ubidots API from github.com/UnaBiz/ubidots-node
 
 //  //////////////////////////////////////////////////////////////////////////////////// endregion
 //  region Message Processing Code
@@ -268,7 +268,6 @@ export function wrap(scloud, api) {  //  scloud will be either sigfox-gcloud or 
     //  Returns a promise for the map of device IDs to array of devices for the ID:
     //    { deviceID1: [ device1, ... ], ... }
     //  If any cache has not expired, return the previous results.
-    debugger; ////
     if (allDevicesPromise && !clientCache.find(cache => (cache.expiry <= Date.now()))) {
       return allDevicesPromise;
     }

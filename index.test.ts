@@ -23,6 +23,69 @@ const testVariable = 'tmp';
 const testValue = 28.2205;
 const moduleName = 'sendToUbidots';
 
+const testValues = {
+  "seqNumber": {
+    "value": 1492,
+    "timestamp": 1513415814824,
+    "context": {
+      "deviceLat": 1.303224739957452,
+      "deviceLng": 103.86088826178306,
+      "data": "number",
+      "ctr": 123,
+      "lig": 456,
+      "tmp": 36.9,
+      "longPolling": false,
+      "device": "2C30EB",
+      "ack": false,
+      "station": "0000",
+      "avgSnr": 15.54,
+      "timestamp": "1513415814824",
+      "callbackTimestamp": 1513415814824,
+      "duplicate": false,
+      "datetime": "2017-05-07 14:30:51",
+      "baseStationTime": 1513415814,
+      "snr": 18.86,
+      "seqNumberCheck": null,
+      "rssi": -123,
+      "uuid": "ab0d40bd-dbc5-4076-b684-3f610d96e621",
+      "baseStationLat": 1,
+      "baseStationLng": 104,
+      "lat": 1.303224739957452,
+      "lng": 103.86088826178306
+    }
+  },
+  "tmp": {
+    "value": 36.9,
+    "timestamp": 1513415814824,
+    "context": {
+      "deviceLat": 1.303224739957452,
+      "deviceLng": 103.86088826178306,
+      "data": "number",
+      "ctr": 123,
+      "lig": 456,
+      "longPolling": false,
+      "device": "2C30EB",
+      "ack": false,
+      "station": "0000",
+      "avgSnr": 15.54,
+      "timestamp": "1513415814824",
+      "seqNumber": 1492,
+      "callbackTimestamp": 1513415814824,
+      "duplicate": false,
+      "datetime": "2017-05-07 14:30:51",
+      "baseStationTime": 1513415814,
+      "snr": 18.86,
+      "seqNumberCheck": null,
+      "rssi": -123,
+      "uuid": "ab0d40bd-dbc5-4076-b684-3f610d96e621",
+      "baseStationLat": 1,
+      "baseStationLng": 104,
+      "lat": 1.303224739957452,
+      "lng": 103.86088826178306
+    }
+  }
+};
+
 const testData = {  //  Structured msgs with numbers and text fields.
   number: '920e06272731741db051e600',
   text: '8013e569a0138c15c013f929',
