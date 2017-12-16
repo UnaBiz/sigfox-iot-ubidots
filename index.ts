@@ -20,6 +20,13 @@ const package_json = /* eslint-disable quote-props,quotes,comma-dangle,indent */
 //  Location fields to be copied from previous device state into sensor records.
 const locationFields = ['lat', 'lng', 'deviceLat', 'deviceLng'];
 
+//  All the Ubidots APIs that we support.
+const allAPIs = {  //  Use lazy loading.
+  udp: () => require('./lib/socket'),
+  tcp: () => require('./lib/socket'),
+  rest: () => require('./lib/rest'),
+};
+
 let apiWrapper = null; // Wrapper for the Ubidots API module.
 let initPromise = null;  //  Promise to init the Ubidots API key.
 let keys = null;  //  Will store the Ubidots API keys.
@@ -39,17 +46,11 @@ function wrap(scloud) {  //  scloud will be either sigfox-gcloud or sigfox-aws, 
   //  all dependencies have been loaded.
   let wrapCount = 0; //  Count how many times the wrapper was reused.
 
-  //  All the Ubidots APIs that we support.
-  const allAPIs = {  //  Use lazy loading.
-    udp: () => require('./lib/socket'),
-    tcp: () => require('./lib/socket'),
-    rest: () => require('./lib/rest'),
-  };
   //  Select the API module to load based on the UBIDOTS_API environment variable.
   const api = process.env.UBIDOTS_API || 'rest';  //  Default to "rest"
   const apiModule = allAPIs[api];
   if (!apiModule) throw new Error(`Unknown UBIDOTS_API: ${api}`);
-  apiWrapper = apiModule.wrap(scloud, api);
+  apiWrapper = apiModule().wrap(scloud, api);
 
   function init(req) {
     //  Init the Ubidots API key and lat/lng fields from environment or Google Metadata Store.

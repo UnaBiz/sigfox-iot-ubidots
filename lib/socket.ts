@@ -1,7 +1,11 @@
 //  UDP and TCP Socket API for Ubidots
 
 //  //////////////////////////////////////////////////////////////////////////////////// endregion
-//  region Declarations: Don't use any require() or process.env in this section because AutoInstall has not loaded our dependencies yet.
+//  region Declarations
+
+//  Send UDP and TCP packets to this host and port.
+const ubidotsHost = 'translate.ubidots.com';
+const ubidotsPort = 9012;
 
 import { createSocket } from 'dgram';
 
@@ -68,7 +72,8 @@ export function wrap(scloud, api) {  //  scloud will be either sigfox-gcloud or 
       'end'].join('|');
     const message = Buffer.from(s);
     const client = createSocket('udp4');
-    client.send(message, 9012, 'translate.ubidots.com', (err) => {
+    //  TODO: Check max size of UDP packet.
+    client.send(message, ubidotsPort, ubidotsHost, (err) => {
       if (err) console.log('send udp', err.message, err.stack);
       client.close();
     });

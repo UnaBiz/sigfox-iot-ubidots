@@ -1,6 +1,6 @@
 jest.setTimeout(600 * 1000);
 
-import scloud from 'sigfox-gcloud';
+const scloud = require('sigfox-gcloud');
 const mod = require('./index').wrap(scloud);
 const req = { unittest: true };
 
@@ -71,3 +71,12 @@ const testMessage = (timestamp, device, data) => ({
   type: moduleName,
 });
 /* eslint-enable quotes, max-len */
+
+/*
+    "transform": {
+      "^.+\\.tsx?$": "ts-jest"
+    },
+"transformIgnorePatterns": [
+  "<rootDir>/node_modules/(?!@foo)"
+],
+*/

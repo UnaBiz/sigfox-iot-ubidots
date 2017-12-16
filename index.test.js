@@ -1,8 +1,7 @@
 "use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
 jest.setTimeout(600 * 1000);
-const sigfox_gcloud_1 = require("sigfox-gcloud");
-const mod = require('./index').wrap(sigfox_gcloud_1.default);
+const scloud = require('sigfox-gcloud');
+const mod = require('./index').wrap(scloud);
 const req = { unittest: true };
 test('send sigfox message to ubidots', () => {
     const device = testDevice2;
@@ -69,4 +68,12 @@ const testMessage = (timestamp, device, data) => ({
     type: moduleName,
 });
 /* eslint-enable quotes, max-len */
+/*
+    "transform": {
+      "^.+\\.tsx?$": "ts-jest"
+    },
+"transformIgnorePatterns": [
+  "<rootDir>/node_modules/(?!@foo)"
+],
+*/ 
 //# sourceMappingURL=index.test.js.map
