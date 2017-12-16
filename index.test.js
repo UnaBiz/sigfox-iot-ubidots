@@ -3,11 +3,6 @@ jest.setTimeout(600 * 1000);
 const scloud = require('sigfox-gcloud');
 const mod = require('./index').wrap(scloud);
 const req = { unittest: true };
-let testLogger = null;
-test('get logger', () => {
-    //  Must get GCloud logger now or it will throw exception.
-    testLogger = scloud.log(req, 'unittest', { result: 'OK' });
-});
 test('send sigfox message to ubidots', () => {
     const device = testDevice2;
     const msg = testMessage(Date.now(), device, 'number');
