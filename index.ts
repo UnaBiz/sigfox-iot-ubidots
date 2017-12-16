@@ -92,9 +92,6 @@ function wrap(scloud) {  //  scloud will be either sigfox-gcloud or sigfox-aws, 
     return initPromise;
   }
 
-  //  Init the API keys at startup.
-  if (!keys) init({});
-
   function transformBody(req, body0) {
     //  Transform any lat/lng fields in the body to the Ubidots geopoint format.
     //  Rename lat/lng to baseStationLat/baseStationLng. This is the original
@@ -233,6 +230,9 @@ function wrap(scloud) {  //  scloud will be either sigfox-gcloud or sigfox-aws, 
       .then(() => msg)
       .catch((error) => { scloud.error(req, 'task', { error, device, body, msg }); throw error; });
   }
+
+  //  Init the API keys at startup.
+  if (!keys) setTimeout(() => init({}), 1000);
 
   //  Expose these functions outside of the wrapper.  task() is called to execute
   //  the wrapped function when the dependencies and the wrapper have been loaded.
