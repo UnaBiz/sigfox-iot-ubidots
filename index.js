@@ -230,6 +230,8 @@ function wrap(scloud) {
     //  the wrapped function when the dependencies and the wrapper have been loaded.
     return { task };
 }
+//  For unit test only.
+exports.wrap = wrap;
 //  //////////////////////////////////////////////////////////////////////////////////// endregion
 //  region Standard Code for AutoInstall Startup Function 1.0.  Do not modify.  https://github.com/UnaBiz/sigfox-iot-cloud/blob/master/autoinstall.js
 /*  eslint-disable camelcase,no-unused-vars,import/no-absolute-path,import/no-unresolved,no-use-before-define,global-require,max-len,no-tabs,brace-style,import/no-extraneous-dependencies */
