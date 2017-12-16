@@ -187,7 +187,7 @@ function wrap(scloud) {  //  scloud will be either sigfox-gcloud or sigfox-aws, 
     let body = body0;
     let allDevices0 = null;
     //  Init the Ubidots API key and lat/lng fields.
-    return apiWrapper.init(req)
+    return init(req)
     //  If body contains location data, copy the previous sensor data. And vice versa.
       .then(() => copyLocationSensorFields(req, device, body))
       .then((res) => { body = res; })
@@ -200,6 +200,7 @@ function wrap(scloud) {  //  scloud will be either sigfox-gcloud or sigfox-aws, 
       .then(() => apiWrapper.getVariablesByDevice(req, allDevices0, device))
       .then(() => {
         //  Find all Ubidots clients and datasource records for the Sigfox device.
+        console.log({ apiWrapper }); debugger; ////
         const devices = allDevices0[device];
         if (!devices || !devices[0]) {
           scloud.log(req, 'missing_ubidots_device', { device, body, msg });
