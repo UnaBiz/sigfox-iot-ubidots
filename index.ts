@@ -177,7 +177,7 @@ function wrap(scloud) {  //  scloud will be either sigfox-gcloud or sigfox-aws, 
     //  variables, and populate the values.  All datasources, variables
     //  must be created in advance.  If the device ID exists in multiple
     //  Ubidots accounts, all Ubidots accounts will be updated.
-    wrapCount += 1; console.log({ wrapCount }); //  Count how many times the wrapper was reused.
+    wrapCount += 1; console.log({ wrapCount, body0 }); //  Count how many times the wrapper was reused.
     //  Skip duplicate messages.
     if (body0.duplicate === true || body0.duplicate === 'true') {
       return Promise.resolve(msg);
