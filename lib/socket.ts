@@ -46,6 +46,7 @@ export function wrap(scloud, api) {  //  scloud will be either sigfox-gcloud or 
     //  The UDP or TCP message looks like
     //  sigfox-iot-ubidots|POST|A1E-ZvX3...e6Idw|2c30eb=>sw1:10$lat=1.31$lng=103.86,sw2:1@{timestamp}|end
     //  Returns a promise.
+    console.log('socket/setVariables', { device, allValues });
     if (!device || allValues.length === 0) return Promise.resolve(null);  //  No such device.
     //  Device label = sigfox-device-2c30eb.  TODO: Confirm
     const deviceLabel = ['sigfox-device-', device.toLowerCase()].join('');
@@ -80,6 +81,7 @@ export function wrap(scloud, api) {  //  scloud will be either sigfox-gcloud or 
       const message = Buffer.from(s);
       const len = s.length;
       if (!udpSocket) udpSocket = createSocket('udp4');
+      console.log('socket/setVariables', { s, allValues, device, len });
       //  TODO: Check max size of UDP packet.
       return new Promise((resolve, reject) =>
         udpSocket.send(message, ubidotsPort, ubidotsHost,
