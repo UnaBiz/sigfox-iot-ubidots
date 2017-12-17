@@ -17,7 +17,7 @@ const contextFields = [
   "timestamp", "seqNumber", "callbackTimestamp", "duplicate", "datetime",
   "baseStationTime", "snr", "seqNumberCheck", "rssi", "uuid",
   "baseStationLat", "baseStationLng",
-  "lat", "lng"
+  "lat", "lng", "localdatetime",
 ];
 
 import { createSocket } from 'dgram';
