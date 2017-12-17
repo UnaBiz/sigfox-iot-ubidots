@@ -259,3 +259,137 @@ exports.main = process.env.FUNCTION_NAME ? require('sigfox-gcloud/main').getMain
 //  For first run, install the dependencies specified in package_json and proceed to next step.
 //  For future runs, just execute the wrapper function with the event, context, callback parameters.
 //  //////////////////////////////////////////////////////////////////////////////////// endregion
+
+const testDevice1 = '2C30EA';
+const testDevice2 = '2C30EB';
+const testVariable = 'tmp';
+const testValue = 28.2205;
+const moduleName = 'sendToUbidots';
+
+const testValues = {
+  "seqNumber": {
+    "value": 1492,
+    "timestamp": 1513415814824,
+    "context": {
+      "deviceLat": 1.303224739957452,
+      "deviceLng": 103.86088826178306,
+      "data": "number",
+      "ctr": 123,
+      "lig": 456,
+      "tmp": 36.9,
+      "longPolling": false,
+      "device": "2C30EB",
+      "ack": false,
+      "station": "0000",
+      "avgSnr": 15.54,
+      "timestamp": "1513415814824",
+      "callbackTimestamp": 1513415814824,
+      "duplicate": false,
+      "datetime": "2017-05-07 14:30:51",
+      "baseStationTime": 1513415814,
+      "snr": 18.86,
+      "seqNumberCheck": null,
+      "rssi": -123,
+      "uuid": "ab0d40bd-dbc5-4076-b684-3f610d96e621",
+      "baseStationLat": 1,
+      "baseStationLng": 104,
+      "lat": 1.303224739957452,
+      "lng": 103.86088826178306
+    }
+  },
+  "tmp": {
+    "value": 36.9,
+    "timestamp": 1513415814824,
+    "context": {
+      "deviceLat": 1.303224739957452,
+      "deviceLng": 103.86088826178306,
+      "data": "number",
+      "ctr": 123,
+      "lig": 456,
+      "longPolling": false,
+      "device": "2C30EB",
+      "ack": false,
+      "station": "0000",
+      "avgSnr": 15.54,
+      "timestamp": "1513415814824",
+      "seqNumber": 1492,
+      "callbackTimestamp": 1513415814824,
+      "duplicate": false,
+      "datetime": "2017-05-07 14:30:51",
+      "baseStationTime": 1513415814,
+      "snr": 18.86,
+      "seqNumberCheck": null,
+      "rssi": -123,
+      "uuid": "ab0d40bd-dbc5-4076-b684-3f610d96e621",
+      "baseStationLat": 1,
+      "baseStationLng": 104,
+      "lat": 1.303224739957452,
+      "lng": 103.86088826178306
+    }
+  }
+};
+
+const testData = {  //  Structured msgs with numbers and text fields.
+  number: '920e06272731741db051e600',
+  text: '8013e569a0138c15c013f929',
+};
+const testBody = (timestamp: number, device: string, data: string) => ({
+  deviceLat: 1.303224739957452,
+  deviceLng: 103.86088826178306,
+  data,
+  ctr: 123,
+  lig: 456,
+  tmp: 36.9,
+  longPolling: false,
+  device,
+  ack: false,
+  station: "0000",
+  avgSnr: 15.54,
+  timestamp: `${timestamp}`,
+  seqNumber: 1492,
+  lat: 1,
+  callbackTimestamp: timestamp,
+  lng: 104,
+  duplicate: false,
+  datetime: "2017-05-07 14:30:51",
+  baseStationTime: Math.floor(timestamp / 1000),
+  snr: 18.86,
+  seqNumberCheck: null,
+  rssi: -123,
+  uuid: "ab0d40bd-dbc5-4076-b684-3f610d96e621",
+});
+const testMessage = (timestamp, device, data) => ({
+  history: [
+    {
+      duration: 0,
+      end: timestamp,
+      timestamp,
+      function: "sigfoxCallback",
+      latency: null,
+    },
+  ],
+  query: {
+    type: moduleName,
+  },
+  route: [],
+  device,
+  body: testBody(timestamp, device, data),
+  type: moduleName,
+});
+
+if (process.env.NODE_ENV !== 'production') {
+  const test = (name, func) => func();
+  test('send sigfox message to ubidots rest api', () => {
+    const scloud = require('sigfox-gcloud');
+    const mod = wrap(scloud);
+    const req = {};
+
+
+    const device = testDevice2;
+    const msg = testMessage(Date.now(), device, 'number');
+    const body = msg.body;
+    return mod.task(req, device, body, msg)
+      .then(res => console.log(JSON.stringify(res, null, 2))
+        && expect(res).toBeTruthy());
+  });
+}

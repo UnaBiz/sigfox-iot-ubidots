@@ -4,14 +4,14 @@ const scloud = require('sigfox-gcloud');
 const mod = require('./index').wrap(scloud);
 const socket = require('./lib/socket').wrap(scloud, 'udp');
 const req = { unittest: true };
-test('send udp message to ubidots', () => {
+test.skip('send udp message to ubidots', () => {
     const device = testDevice2;
     const allValues = testValues;
     return socket.setVariables(req, device, allValues)
         .then(res => console.log(JSON.stringify(res, null, 2))
         && expect(res).toBeTruthy());
 });
-test.skip('send sigfox message to ubidots rest api', () => {
+test('send sigfox message to ubidots rest api', () => {
     const device = testDevice2;
     const msg = testMessage(Date.now(), device, 'number');
     const body = msg.body;
