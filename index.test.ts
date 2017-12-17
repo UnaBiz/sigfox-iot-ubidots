@@ -4,15 +4,6 @@ const scloud = require('sigfox-gcloud');
 const socket = require('./lib/socket').wrap(scloud, 'udp');
 const req = { unittest: true };
 
-test.skip('send udp message to ubidots', () => {
-  const device = testDevice2;
-  const allValues = testValues;
-  return socket.init(req, null)
-    .then(() => socket.setVariables(req, device, allValues))
-    .then(res => console.log(JSON.stringify(res, null, 2))
-      && expect(res).toBeTruthy());
-});
-
 test('send sigfox message to ubidots udp api', () => {
   process.env.UNITTEST_UBIDOTS_API = 'udp';
   const mod = require('./index').wrap(scloud);  //  Create module here because we have updated the environment.

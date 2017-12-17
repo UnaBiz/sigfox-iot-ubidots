@@ -293,12 +293,52 @@ export function wrap(scloud, api) {  //  scloud will be either sigfox-gcloud or 
     return allDevicesPromise;
   }
 
+  function sendBody(req, device, body) {
+    let allDevices0 = null;
+    return Promise.resolve('start')
+    //  Load the Ubidots datasources if not already loaded.
+      .then(() => loadAllDevices(req))
+      .then((res) => { allDevices0 = res; })
+      //  Load the Ubidots variables for the device if not loaded already.
+      .then(() => getVariablesByDevice(req, allDevices0, device))
+      .then(() => {
+        //  Find all Ubidots clients and datasource records for the Sigfox device.
+        const devices = allDevices0[device];
+        if (!devices || !devices[0]) {
+          scloud.log(req, 'missing_ubidots_device', { device, body });
+          return null;  //  No such device.
+        }
+        //  Update the datasource record for each Ubidots client.
+        return Promise.all(devices.map((dev) => {
+          //  For each Sigfox message field, set the value of the Ubidots variable.
+          if (!dev || !dev.variables) return null;
+          const vars = dev.variables;
+          const allValues = {};  //  All vars to be set.
+          for (const key of Object.keys(vars)) {
+            if (!body[key]) continue;
+            //  value looks like
+            //  {"value": "52.1", "timestamp": 1376056359000,
+            //    "context": {"lat": 6.1, "lng": -35.1, "status": "driving"}}'
+            const value = {
+              value: body[key],
+              timestamp: parseInt(body.timestamp, 10),  //  Basestation time.
+              context: Object.assign({}, body),  //  Entire message.
+            };
+            if (value.context[key]) delete value.context[key];
+            allValues[key] = value;
+          }
+          //  Set multiple variables with a single Ubidots API call.
+          return setVariables(req, dev, allValues)
+            .catch((error) => { scloud.error(req, 'sendBody', { error, device, body }); throw error; });
+        }))
+      })
+      .catch((error) => { scloud.error(req, 'sendBody', { error, device, body }); throw error; });
+  }
+
   //  Expose these functions outside of the wrapper.
   return {
     api: 'rest',
     init,
-    loadAllDevices,
-    getVariablesByDevice,
-    setVariables,
+    sendBody,
   };
 }

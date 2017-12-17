@@ -180,50 +180,13 @@ function wrap(scloud) {
         }
         Object.assign(req, { device });
         let body = body0;
-        let allDevices0 = null;
         //  Init the Ubidots API key and lat/lng fields.
         return init(req)
             .then(() => copyLocationSensorFields(req, device, body))
             .then((res) => { body = res; })
             .then(() => { body = transformBody(req, body); })
-            .then(() => apiWrapper.loadAllDevices(req))
-            .then((res) => { allDevices0 = res; })
-            .then(() => apiWrapper.getVariablesByDevice(req, allDevices0, device))
-            .then(() => {
-            //  Find all Ubidots clients and datasource records for the Sigfox device.
-            const devices = allDevices0[device];
-            if (!devices || !devices[0]) {
-                scloud.log(req, 'missing_ubidots_device', { device, body, msg });
-                return null; //  No such device.
-            }
-            //  Update the datasource record for each Ubidots client.
-            return Promise.all(devices.map((dev) => {
-                //  For each Sigfox message field, set the value of the Ubidots variable.
-                if (!dev || !dev.variables)
-                    return null;
-                const vars = dev.variables;
-                const allValues = {}; //  All vars to be set.
-                for (const key of Object.keys(vars)) {
-                    if (!body[key])
-                        continue;
-                    //  value looks like
-                    //  {"value": "52.1", "timestamp": 1376056359000,
-                    //    "context": {"lat": 6.1, "lng": -35.1, "status": "driving"}}'
-                    const value = {
-                        value: body[key],
-                        timestamp: parseInt(body.timestamp, 10),
-                        context: Object.assign({}, body),
-                    };
-                    if (value.context[key])
-                        delete value.context[key];
-                    allValues[key] = value;
-                }
-                //  Set multiple variables with a single Ubidots API call.
-                return apiWrapper.setVariables(req, dev, allValues);
-            }))
-                .catch((error) => { scloud.error(req, 'task', { error, device, body, msg }); throw error; });
-        })
-            .then(() => msg)
+            .then(() => apiWrapper.sendBody(req, device, body))
+            .then(() => Object.assign(msg, { body }))
             .catch((error) => { scloud.error(req, 'task', { error, device, body, msg }); throw error; });
     }
     //  Init the API keys at startup.

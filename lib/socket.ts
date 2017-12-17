@@ -11,6 +11,15 @@ const ubidotsPort = 9012;
 let udpSocket = null;  //  The current UDP socket connection.
 let ubidotsTokens = null;  //  All Ubidots API Tokens.
 
+const contextFields = [
+  "deviceLat", "deviceLng",
+  "data", "longPolling", "device", "ack", "station", "avgSnr",
+  "timestamp", "seqNumber", "callbackTimestamp", "duplicate", "datetime",
+  "baseStationTime", "snr", "seqNumberCheck", "rssi", "uuid",
+  "baseStationLat", "baseStationLng",
+  "lat", "lng"
+];
+
 import { createSocket } from 'dgram';
 
 //  //////////////////////////////////////////////////////////////////////////////////// endregion
@@ -28,17 +37,7 @@ export function wrap(scloud, api) {  //  scloud will be either sigfox-gcloud or 
     return Promise.resolve({ result: 'OK' });
   }
 
-  function loadAllDevices(req) {
-    //  Not used. Returns a promise.
-    return Promise.resolve([]);
-  }
-
-  function getVariablesByDevice(req, allDevices0, device) {
-    //  Not used. Returns a promise.
-    return Promise.resolve([]);
-  }
-
-  function setVariables(req, device, allValues) {
+  function sendBody(req, device, body) {
     //  Set the Ubidots variables for the specified Ubidots device,
     //  for a single Ubidots client only.  allValues looks like:
     //  varname => {"value": "52.1", "timestamp": 1376056359000,
@@ -46,32 +45,33 @@ export function wrap(scloud, api) {  //  scloud will be either sigfox-gcloud or 
     //  The UDP or TCP message looks like
     //  sigfox-iot-ubidots|POST|A1E-ZvX3...e6Idw|2c30eb=>sw1:10$lat=1.31$lng=103.86,sw2:1@{timestamp}|end
     //  Returns a promise.
-    console.log('socket/setVariables', { device, allValues });
-    if (!device || allValues.length === 0) return Promise.resolve(null);  //  No such device.
+    console.log('socket/sendBody', { device, body });
+    const timestamp = parseInt(body.timestamp, 10);  //  Basestation time.
     //  Device label = sigfox-device-2c30eb.  TODO: Confirm
     const deviceLabel = ['sigfox-device-', device.toLowerCase()].join('');
     const context = null; // TODO: e.g. lat=1.31$lng=103.86
-    let timestamp = null;
     // Compose fields = [ 'sw1:4$lat=1.31$lng=103.86', 'sw2:5' ];
-    const fields = Object.keys(allValues).map((name) => {
-      const value = allValues[name]; //  e.g.  {"value": "52.1", "timestamp": 1376056359000,"context": ...
+
+    //  Exclude context fields from the message.
+    const excludeContextFields = Object.keys(body).filter(key => !contextFields.includes(key));
+    const fields = excludeContextFields.map((name) => {
+      const value = body[name]; //  e.g.  {"value": "52.1", "timestamp": 1376056359000,"context": ...
       let field = [ //  e.g. sw1:4$lat=1.31$lng=103.86
         name,
         ':',
-        value.value
+        value
       ];
       if (context) field = field.concat(['$', context]);
-      if (!timestamp) timestamp = value.timestamp;
       return field.join('');
     });
     const deviceValues = [
       deviceLabel, // e.g. sigfox-device-2c30eb
       '=>',
       fields.join(','), // e.g. sw1:4$lat=1.31$lng=103.86,sw2:5
-    ].concat(timestamp ? ['@', timestamp] : []).join('');
+    ].concat([`@${timestamp}`]).join('');
 
     //  Send message to each Ubidots account.
-    ubidotsTokens.forEach(ubidotsToken => {
+    return Promise.all(ubidotsTokens.map(ubidotsToken => {
       const s = [
         'sigfox-iot-ubidots',
         'POST',
@@ -81,22 +81,20 @@ export function wrap(scloud, api) {  //  scloud will be either sigfox-gcloud or 
       const message = Buffer.from(s);
       const len = s.length;
       if (!udpSocket) udpSocket = createSocket('udp4');
-      console.log('socket/setVariables', { s, allValues, device, len });
+      console.log('sendUDP', { s, body, device, len });
       //  TODO: Check max size of UDP packet.
       return new Promise((resolve, reject) =>
         udpSocket.send(message, ubidotsPort, ubidotsHost,
           err => err ? reject(err) : resolve(err)))
-        .then(result => scloud.log(req, 'sendUDP', { result, s, allValues, device, len }) && result)
-        .catch((error) => { scloud.error(req, 'sendUDP', { error, s, allValues, device, len }); throw error; });
-    });
+        .then(result => scloud.log(req, 'sendUDP', { result, s, body, device, len }) && result)
+        .catch((error) => { scloud.error(req, 'sendUDP', { error, s, body, device, len }); throw error; });
+    }));
   }
 
   //  Expose these functions outside of the wrapper.  task() is called to execute
   //  the wrapped function when the dependencies and the wrapper have been loaded.
   return {
     init,
-    loadAllDevices,
-    getVariablesByDevice,
-    setVariables,
+    sendBody,
   };
 }
