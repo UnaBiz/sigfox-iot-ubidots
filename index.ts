@@ -47,7 +47,7 @@ function wrap(scloud) {  //  scloud will be either sigfox-gcloud or sigfox-aws, 
   let wrapCount = 0; //  Count how many times the wrapper was reused.
 
   //  Select the API module to load based on the UBIDOTS_API environment variable.
-  const api = process.env.UBIDOTS_API || 'rest';  //  Default to "rest"
+  const api = process.env.UNITTEST_UBIDOTS_API || process.env.UBIDOTS_API || 'rest';  //  Default to "rest"
   const apiModule = allAPIs[api];
   if (!apiModule) throw new Error(`Unknown UBIDOTS_API: ${api}`);
   apiWrapper = apiModule().wrap(scloud, api);
@@ -56,6 +56,8 @@ function wrap(scloud) {  //  scloud will be either sigfox-gcloud or sigfox-aws, 
     //  Init the Ubidots API key and lat/lng fields from environment or Google Metadata Store.
     //  Returns a promise.
     if (initPromise) return initPromise;
+    //  TODO: Socket API should also use metadata.
+    if (api !== 'rest') return apiWrapper.init(req, null);
     let allKeys = null;
     //  Get the function metadata from environment or Google Metadata Store.
     initPromise = scloud.authorizeFunctionMetadata(req)

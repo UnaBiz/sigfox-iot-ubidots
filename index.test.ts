@@ -1,19 +1,32 @@
 jest.setTimeout(600 * 1000);
 
 const scloud = require('sigfox-gcloud');
-const mod = require('./index').wrap(scloud);
 const socket = require('./lib/socket').wrap(scloud, 'udp');
 const req = { unittest: true };
 
 test.skip('send udp message to ubidots', () => {
   const device = testDevice2;
   const allValues = testValues;
-  return socket.setVariables(req, device, allValues)
+  return socket.init(req, null)
+    .then(() => socket.setVariables(req, device, allValues))
     .then(res => console.log(JSON.stringify(res, null, 2))
       && expect(res).toBeTruthy());
 });
 
-test('send sigfox message to ubidots rest api', () => {
+test('send sigfox message to ubidots udp api', () => {
+  process.env.UNITTEST_UBIDOTS_API = 'udp';
+  const mod = require('./index').wrap(scloud);  //  Create module here because we have updated the environment.
+  const device = testDevice2;
+  const msg = testMessage(Date.now(), device, 'number');
+  const body = msg.body;
+  return mod.task(req, device, body, msg)
+    .then(res => console.log(JSON.stringify(res, null, 2))
+      && expect(res).toBeTruthy());
+});
+
+test.skip('send sigfox message to ubidots rest api', () => {
+  process.env.UNITTEST_UBIDOTS_API = 'rest';
+  const mod = require('./index').wrap(scloud);  //  Create module here because we have updated the environment.
   const device = testDevice2;
   const msg = testMessage(Date.now(), device, 'number');
   const body = msg.body;

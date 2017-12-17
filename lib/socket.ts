@@ -1,4 +1,6 @@
 //  UDP and TCP Socket API for Ubidots
+//  To use this, environment variable UBIDOTS_API should be set to 'udp',
+//  UBIDOTS_TOKEN should set to a comma-separated list of Ubidots Tokens (not Ubidots API Keys).
 
 //  //////////////////////////////////////////////////////////////////////////////////// endregion
 //  region Declarations
@@ -7,6 +9,7 @@
 const ubidotsHost = 'translate.ubidots.com';
 const ubidotsPort = 9012;
 let udpSocket = null;  //  The current UDP socket connection.
+let ubidotsTokens = null;  //  All Ubidots API Tokens.
 
 import { createSocket } from 'dgram';
 
@@ -15,13 +18,13 @@ import { createSocket } from 'dgram';
 
 export function wrap(scloud, api) {  //  scloud will be either sigfox-gcloud or sigfox-aws, depending on platform.
   //  Wrap the module into a function so that all we defer loading of dependencies,
-  //  and ensure that cloud resources are properly disposed. For AWS, wrap() is called after
-  //  all dependencies have been loaded.
-  //  api is the Ubidots API - 'udp' or 'tcp'
 
   function init(req, allKeys0) {
     //  Init the Ubidots Socket API. Returns a promise.
     if (api === 'tcp') throw new Error(api + ' API not implemented yet');
+    const tokens = process.env.UBIDOTS_TOKEN;
+    if (!tokens) throw new Error('UBIDOTS_TOKEN should be defined in environment');
+    ubidotsTokens = tokens.split(',');  //  TODO: Get from metadata.
     return Promise.resolve({ result: 'OK' });
   }
 
@@ -65,26 +68,25 @@ export function wrap(scloud, api) {  //  scloud will be either sigfox-gcloud or 
       '=>',
       fields.join(','), // e.g. sw1:4$lat=1.31$lng=103.86,sw2:5
     ].concat(timestamp ? ['@', timestamp] : []).join('');
-    const s = [
-      'sigfox-iot-ubidots',
-      'POST',
-      process.env.UBIDOTS_TOKEN,  //  TODO: Get from metadata.
-      deviceValues,
-      'end'].join('|');
-    const message = Buffer.from(s);
-    const len = s.length;
-    if (!udpSocket) udpSocket = createSocket('udp4');
-    //  TODO: Check max size of UDP packet.
-    return new Promise((resolve, reject) =>
-      udpSocket.send(message, ubidotsPort, ubidotsHost,
-        err => err ? reject(err) : resolve(err)))
-      .then(result => scloud.log(req, 'sendUDP', { result, allValues, device, len }) && result)
-      .catch((error) => { scloud.error(req, 'sendUDP', { error, allValues, device, len }); throw error; });
 
-    /* client.send(message, ubidotsPort, ubidotsHost, (err) => {
-      if (err) console.log('send udp', err.message, err.stack);
-      client.close();
-    }); */
+    //  Send message to each Ubidots account.
+    ubidotsTokens.forEach(ubidotsToken => {
+      const s = [
+        'sigfox-iot-ubidots',
+        'POST',
+        ubidotsToken,
+        deviceValues,
+        'end'].join('|');
+      const message = Buffer.from(s);
+      const len = s.length;
+      if (!udpSocket) udpSocket = createSocket('udp4');
+      //  TODO: Check max size of UDP packet.
+      return new Promise((resolve, reject) =>
+        udpSocket.send(message, ubidotsPort, ubidotsHost,
+          err => err ? reject(err) : resolve(err)))
+        .then(result => scloud.log(req, 'sendUDP', { result, s, allValues, device, len }) && result)
+        .catch((error) => { scloud.error(req, 'sendUDP', { error, s, allValues, device, len }); throw error; });
+    });
   }
 
   //  Expose these functions outside of the wrapper.  task() is called to execute
