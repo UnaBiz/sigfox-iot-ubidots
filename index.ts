@@ -45,6 +45,7 @@ function wrap(scloud) {  //  scloud will be either sigfox-gcloud or sigfox-aws, 
   //  and ensure that cloud resources are properly disposed. For AWS, wrap() is called after
   //  all dependencies have been loaded.
   let wrapCount = 0; //  Count how many times the wrapper was reused.
+  const { decodeMessage } = require('sigfox-iot-cloud/decodeStructuredMessage/structuredMessage');
 
   //  Select the API module to load based on the UBIDOTS_API environment variable.
   const api = process.env.UNITTEST_UBIDOTS_API || process.env.UBIDOTS_API || 'rest';  //  Default to "rest"
@@ -183,7 +184,8 @@ function wrap(scloud) {  //  scloud will be either sigfox-gcloud or sigfox-aws, 
       return Promise.resolve(msg);
     }
     Object.assign(req, { device });
-    let body = body0;
+    const decodedStructuredMessage = decodeMessage(body0.data);
+    let body = Object.assign({}, body0, decodedStructuredMessage);
     //  Init the Ubidots API key and lat/lng fields.
     return init(req)
     //  If body contains location data, copy the previous sensor data. And vice versa.

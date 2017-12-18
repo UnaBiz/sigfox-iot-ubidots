@@ -7,7 +7,7 @@ test('send sigfox message to ubidots udp api', () => {
     process.env.UNITTEST_UBIDOTS_API = 'udp';
     const mod = require('./index').wrap(scloud); //  Create module here because we have updated the environment.
     const device = testDevice2;
-    const msg = testMessage(Date.now(), device, 'number');
+    const msg = testMessage(Date.now(), device, testData.number);
     const body = msg.body;
     return mod.task(req, device, body, msg)
         .then(res => console.log(JSON.stringify(res, null, 2))
@@ -17,7 +17,7 @@ test.skip('send sigfox message to ubidots rest api', () => {
     process.env.UNITTEST_UBIDOTS_API = 'rest';
     const mod = require('./index').wrap(scloud); //  Create module here because we have updated the environment.
     const device = testDevice2;
-    const msg = testMessage(Date.now(), device, 'number');
+    const msg = testMessage(Date.now(), device, testData.number);
     const body = msg.body;
     return mod.task(req, device, body, msg)
         .then(res => console.log(JSON.stringify(res, null, 2))
